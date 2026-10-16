@@ -52,6 +52,13 @@
   .conclusion { border-left:4px solid var(--acento); background:var(--acento-suave); padding:10px 14px; border-radius:0 10px 10px 0; font-size:.92rem; margin:0; }
   .vacio { color:var(--suave); font-style:italic; }
   .enlaces a { display:inline-block; margin:4px 6px 4px 0; padding:8px 14px; border-radius:999px; background:var(--acento-suave); color:var(--acento); text-decoration:none; font-weight:600; font-size:.88rem; }
+  .mini { font:inherit; font-size:.8rem; padding:4px 10px; border-radius:999px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--tinta); cursor:pointer; white-space:nowrap; }
+  .mini:hover { border-color:var(--acento); color:var(--acento); }
+  .mini:disabled { opacity:.5; cursor:default; }
+  .quitada { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--borde); font-size:.88rem; }
+  .aviso { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:20; background:var(--lateral); color:#fff; border-radius:12px; padding:10px 12px 10px 16px; display:flex; gap:14px; align-items:center; box-shadow:0 6px 20px rgba(0,0,0,.25); font-size:.92rem; max-width:calc(100% - 32px); }
+  .aviso[hidden] { display:none; }
+  .aviso button { font:inherit; font-weight:700; background:none; border:0; color:#9db8ff; cursor:pointer; padding:4px 6px; }
   .mensaje { background:var(--fondo); border-radius:10px; padding:12px 14px; font-size:.9rem; white-space:pre-wrap; user-select:all; }
   /* Entrada con contraseña */
   .entrada { position:fixed; inset:0; z-index:10; background:var(--lateral); display:flex; align-items:center; justify-content:center; padding:16px; }
@@ -75,6 +82,7 @@
 </style>
 </head>
 <body>
+<div class="aviso" id="aviso" role="status" hidden><span id="aviso-texto"></span><button type="button" id="aviso-deshacer">Deshacer</button></div>
 <div class="entrada" id="entrada">
   <form id="form-entrada">
     <h1>🖼️ Panel de jefe</h1>
@@ -127,6 +135,11 @@
       <h1>📝 Todas las respuestas</h1>
       <p class="sub">Una fila por persona, la más nueva arriba. Son anónimas: no hay nombres.</p>
       <div class="tarjeta tabla" id="tabla"></div>
+      <div class="tarjeta" id="tarjeta-quitadas" hidden>
+        <h2>🗂️ Quitadas (<span id="n-quitadas">0</span>)</h2>
+        <p class="sub" style="margin:0 0 8px">No cuentan en las cifras, pero siguen guardadas en la hoja. Puedes recuperarlas cuando quieras.</p>
+        <div id="quitadas"></div>
+      </div>
     </section>
 
     <section class="vista" id="v-enlaces">
@@ -231,16 +244,37 @@
     else {
       const t = el("table");
       const cab = el("tr");
-      ["Cuándo", "Fotos", "¿Saben quién sale?", "¿Guardadas?", "Interés", "Para quién", "Edad"].forEach(function (c) { cab.appendChild(el("th", "", c)); });
+      ["Cuándo", "Fotos", "¿Saben quién sale?", "¿Guardadas?", "Interés", "Para quién", "Edad", ""].forEach(function (c) { cab.appendChild(el("th", "", c)); });
       t.appendChild(cab);
       d.respuestas.forEach(function (r) {
         const tr = el("tr");
+        const celda = el("td");
+        const b = el("button", "mini", "Quitar");
+        b.type = "button";
+        b.title = "Deja de contar en las cifras. No se borra: se puede recuperar.";
+        b.addEventListener("click", function () { cambiar("quitar", r.id, b); });
+        celda.appendChild(b);
         tr.append(el("td", "", r.cuando), el("td", "", r.fotos), el("td", "", r.sabe), el("td", "", r.guardadas),
-          el("td", "estrellas", estrellas(r.interes)), el("td", "", para(r.para)), el("td", "", r.edad || "–"));
+          el("td", "estrellas", estrellas(r.interes)), el("td", "", para(r.para)), el("td", "", r.edad || "–"), celda);
         t.appendChild(tr);
       });
       tabla.appendChild(t);
     }
+
+    // Quitadas (se pueden recuperar)
+    const q = document.getElementById("quitadas");
+    q.replaceChildren();
+    const lista = d.quitadas || [];
+    document.getElementById("tarjeta-quitadas").hidden = !lista.length;
+    document.getElementById("n-quitadas").textContent = lista.length;
+    lista.forEach(function (r) {
+      const fila = el("div", "quitada");
+      const b = el("button", "mini", "Recuperar");
+      b.type = "button";
+      b.addEventListener("click", function () { cambiar("recuperar", r.id, b); });
+      fila.append(el("span", "", r.cuando + " · " + (r.edad || "sin edad") + " · " + estrellas(r.interes)), b);
+      q.appendChild(fila);
+    });
 
     // Enlaces
     const msg = "Hola 👋 Estoy haciendo un estudio para un proyecto sobre las fotos antiguas de las familias. ¿Me ayudas contestando? Son 2 minutos y es anónimo 🙏\n" +
@@ -276,9 +310,31 @@
     peticion: "Algo ha fallado al pedir los datos."
   };
 
-  function pedir() {
-    return fetch(API, { method: "POST", body: JSON.stringify({ clave: clave }) })
+  function pedir(extra) {
+    const cuerpo = Object.assign({ clave: clave }, extra || {});
+    return fetch(API, { method: "POST", body: JSON.stringify(cuerpo) })
       .then(function (r) { return r.json(); });
+  }
+
+  // Quitar o recuperar una respuesta, con "Deshacer" durante 10 segundos.
+  let avisoTiempo = null;
+  function cambiar(accion, id, boton) {
+    if (boton) boton.disabled = true;
+    pedir({ accion: accion, id: id }).then(function (r) {
+      if (!r.ok) { fallo(MENSAJES[r.error] || r.error); if (boton) boton.disabled = false; return; }
+      pintar(r.datos);
+      const contrario = accion === "quitar" ? "recuperar" : "quitar";
+      avisar(accion === "quitar" ? "Respuesta quitada de las cifras" : "Respuesta recuperada", function () { cambiar(contrario, id); });
+    }).catch(function () { fallo("sin conexión"); if (boton) boton.disabled = false; });
+  }
+  function avisar(texto, deshacer) {
+    const aviso = document.getElementById("aviso");
+    document.getElementById("aviso-texto").textContent = texto;
+    const b = document.getElementById("aviso-deshacer");
+    b.onclick = function () { aviso.hidden = true; clearTimeout(avisoTiempo); deshacer(); };
+    aviso.hidden = false;
+    clearTimeout(avisoTiempo);
+    avisoTiempo = setTimeout(function () { aviso.hidden = true; }, 10000);
   }
 
   function cargar() {
