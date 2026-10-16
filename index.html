@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel de jefe · Recuerdos</title>
+<base target="_blank">
+<style>
+  :root { --fondo:#f2f5fb; --lateral:#1b2540; --lateral-tinta:#dfe6f5; --tinta:#1c2333; --suave:#5d6880; --acento:#3a6df0; --acento-suave:#e1e9fd;
+          --tarjeta:#fff; --borde:#dde3ee; --ok:#2e8b57; --error:#b3261e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--fondo); color:var(--tinta); }
+  .app { display:flex; min-height:100vh; }
+  nav { width:230px; flex:none; background:var(--lateral); color:var(--lateral-tinta); padding:20px 12px; display:flex; flex-direction:column; gap:4px; }
+  .marca { font-weight:800; font-size:1.1rem; padding:0 10px 4px; }
+  .marca small { display:block; font-weight:400; font-size:.75rem; opacity:.7; }
+  .grupo { font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; opacity:.55; padding:14px 10px 4px; }
+  nav button { all:unset; cursor:pointer; padding:9px 10px; border-radius:8px; font-size:.92rem; display:flex; gap:10px; align-items:center; }
+  nav button:hover { background:rgba(255,255,255,.08); }
+  nav button:focus-visible { outline:2px solid #fff; }
+  nav button.activo { background:var(--acento); color:#fff; }
+  nav button.pronto { opacity:.45; cursor:default; }
+  nav button.pronto:hover { background:none; }
+  nav .etq { margin-left:auto; font-size:.65rem; border:1px solid currentColor; border-radius:999px; padding:1px 6px; }
+  main { flex:1; min-width:0; padding:28px 32px 48px; }
+  h1 { margin:0 0 4px; font-size:1.6rem; }
+  .sub { color:var(--suave); margin:0 0 20px; }
+  .vista { display:none; } .vista.activa { display:block; }
+  .cifras { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin-bottom:20px; }
+  .cifra { background:var(--tarjeta); border:1px solid var(--borde); border-radius:12px; padding:14px 16px; }
+  .cifra b { display:block; font-size:1.8rem; font-variant-numeric:tabular-nums; }
+  .cifra span { color:var(--suave); font-size:.85rem; }
+  .cifra.destacada { background:var(--acento-suave); border-color:transparent; }
+  .progreso { height:6px; background:#fff; border-radius:999px; margin-top:8px; overflow:hidden; }
+  .progreso div { height:100%; background:var(--acento); }
+  .tarjeta { background:var(--tarjeta); border:1px solid var(--borde); border-radius:12px; padding:16px 18px; margin-bottom:16px; }
+  .tarjeta h2 { margin:0 0 10px; font-size:1.05rem; }
+  .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
+  .barra { display:grid; grid-template-columns:minmax(0,1fr) 2.4rem; gap:2px 8px; font-size:.88rem; margin:8px 0; }
+  .pista { grid-column:1/-1; height:9px; background:var(--acento-suave); border-radius:999px; overflow:hidden; }
+  .relleno { height:100%; background:var(--acento); transition:width .4s; }
+  .barra .n { text-align:right; color:var(--suave); font-variant-numeric:tabular-nums; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
+  th { font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:var(--suave); }
+  .tabla { overflow-x:auto; }
+  .estrellas { color:var(--acento); letter-spacing:1px; white-space:nowrap; }
+  .directo { display:inline-flex; align-items:center; gap:6px; font-size:.8rem; color:var(--ok); font-weight:600; }
+  .directo::before { content:""; width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .directo.mal { color:var(--error); }
+  .conclusion { border-left:4px solid var(--acento); background:var(--acento-suave); padding:10px 14px; border-radius:0 10px 10px 0; font-size:.92rem; margin:0; }
+  .vacio { color:var(--suave); font-style:italic; }
+  .enlaces a { display:inline-block; margin:4px 6px 4px 0; padding:8px 14px; border-radius:999px; background:var(--acento-suave); color:var(--acento); text-decoration:none; font-weight:600; font-size:.88rem; }
+  .mensaje { background:var(--fondo); border-radius:10px; padding:12px 14px; font-size:.9rem; white-space:pre-wrap; user-select:all; }
+  /* Entrada con contraseña */
+  .entrada { position:fixed; inset:0; z-index:10; background:var(--lateral); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .entrada[hidden] { display:none; }
+  .entrada form { background:var(--tarjeta); border-radius:16px; padding:28px 24px; width:min(360px, 100%); display:grid; gap:12px; }
+  .entrada h1 { font-size:1.3rem; }
+  .entrada input[type=password] { font:inherit; padding:11px 12px; border:1px solid var(--borde); border-radius:10px; width:100%; }
+  .entrada input:focus-visible { outline:2px solid var(--acento); border-color:transparent; }
+  .entrada label.recordar { display:flex; gap:8px; align-items:center; font-size:.88rem; color:var(--suave); }
+  .entrada button { font:inherit; font-weight:700; padding:11px; border:0; border-radius:10px; background:var(--acento); color:#fff; cursor:pointer; }
+  .entrada button:disabled { opacity:.6; cursor:default; }
+  .entrada .error { color:var(--error); font-size:.88rem; min-height:1.2em; margin:0; }
+  .salir { all:unset; cursor:pointer; padding:9px 10px; border-radius:8px; font-size:.85rem; opacity:.7; margin-top:auto; }
+  @media (max-width:760px) {
+    .app { flex-direction:column; }
+    nav { width:auto; flex-direction:row; overflow-x:auto; padding:10px; position:sticky; top:0; z-index:2; }
+    .marca, .grupo, nav .etq, nav .pronto { display:none; }
+    nav button { white-space:nowrap; }
+    main { padding:20px 16px 48px; }
+  }
+</style>
+</head>
+<body>
+<div class="entrada" id="entrada">
+  <form id="form-entrada">
+    <h1>🖼️ Panel de jefe</h1>
+    <p class="sub" style="margin:0">Escribe tu contraseña para ver los datos.</p>
+    <input type="password" id="clave" autocomplete="current-password" placeholder="Contraseña" required>
+    <label class="recordar"><input type="checkbox" id="recordar" checked> Recordarla en este dispositivo</label>
+    <button type="submit" id="boton-entrar">Entrar</button>
+    <p class="error" id="error-entrada" role="alert"></p>
+  </form>
+</div>
+<div class="app">
+  <nav>
+    <div class="marca">🖼️ Recuerdos<small>Panel de jefe · Emmanuel</small></div>
+    <div class="grupo">Ahora</div>
+    <button class="activo" data-v="inicio">🏠 Inicio</button>
+    <button data-v="encuesta">📊 Encuesta</button>
+    <button data-v="respuestas">📝 Respuestas</button>
+    <div class="grupo">Cuando haya app</div>
+    <button class="pronto" tabindex="-1">👨‍👩‍👧 Familias <span class="etq">pronto</span></button>
+    <button class="pronto" tabindex="-1">💶 Cobros <span class="etq">pronto</span></button>
+    <button class="pronto" tabindex="-1">🎙️ Álbumes <span class="etq">pronto</span></button>
+    <div class="grupo">Otros</div>
+    <button data-v="enlaces">⚙️ Enlaces</button>
+    <button class="salir" id="salir" type="button">🚪 Salir</button>
+  </nav>
+
+  <main>
+    <section class="vista activa" id="v-inicio">
+      <h1>Hola, Emmanuel 👋</h1>
+      <p class="sub">Así va la idea de los recuerdos de la familia. <span class="directo" id="estado">cargando…</span></p>
+      <div class="cifras">
+        <div class="cifra destacada"><b id="c-total">–</b><span id="c-meta">respuestas</span><div class="progreso"><div id="c-barra" style="width:0%"></div></div></div>
+        <div class="cifra"><b id="c-nosabe">–</b><span>no sabe quién sale en algunas o muchas fotos</span></div>
+        <div class="cifra"><b id="c-media">–</b><span>de 5: cuánto les gustaría tenerlo</span></div>
+        <div class="cifra"><b id="c-regalo">–</b><span>lo regalaría a sus padres o abuelos</span></div>
+      </div>
+      <div class="dos">
+        <div class="tarjeta"><h2>💡 Lo que dicen los datos</h2><p class="conclusion" id="conclusion">Cargando…</p></div>
+        <div class="tarjeta"><h2>🕐 Últimas respuestas</h2><div id="ultimas"></div></div>
+      </div>
+    </section>
+
+    <section class="vista" id="v-encuesta">
+      <h1>📊 Encuesta</h1>
+      <p class="sub">Un gráfico por cada pregunta. Se actualiza solo.</p>
+      <div class="dos" id="graficos"></div>
+    </section>
+
+    <section class="vista" id="v-respuestas">
+      <h1>📝 Todas las respuestas</h1>
+      <p class="sub">Una fila por persona, la más nueva arriba. Son anónimas: no hay nombres.</p>
+      <div class="tarjeta tabla" id="tabla"></div>
+    </section>
+
+    <section class="vista" id="v-enlaces">
+      <h1>⚙️ Enlaces</h1>
+      <p class="sub">Todo lo de la encuesta, a mano.</p>
+      <div class="tarjeta enlaces">
+        <a id="l-enviar" href="#">📨 Abrir la encuesta</a>
+        <a id="l-whatsapp" href="#">💬 Enviar por WhatsApp</a>
+        <a id="l-editar" href="#">✏️ Cambiar el formulario</a>
+        <a id="l-hoja" href="#">📄 Hoja de Google con las respuestas</a>
+      </div>
+      <div class="tarjeta">
+        <h2>Mensaje para copiar</h2>
+        <div class="mensaje" id="mensaje"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // Menú lateral: cambiar de pantalla.
+  document.querySelectorAll("nav button[data-v]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll("nav button").forEach(function (x) { x.classList.remove("activo"); });
+      document.querySelectorAll(".vista").forEach(function (x) { x.classList.remove("activa"); });
+      b.classList.add("activo");
+      document.getElementById("v-" + b.dataset.v).classList.add("activa");
+    });
+  });
+
+  function el(tag, clase, texto) {
+    const e = document.createElement(tag);
+    if (clase) e.className = clase;
+    if (texto !== undefined) e.textContent = texto;
+    return e;
+  }
+  function estrellas(n) {
+    n = Number(n) || 0;
+    return n ? "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n) : "–";
+  }
+  function hace(ms) {
+    const min = Math.round((Date.now() - ms) / 60000);
+    if (min < 1) return "ahora mismo";
+    if (min < 60) return "hace " + min + " min";
+    const h = Math.round(min / 60);
+    if (h < 24) return "hace " + h + " h";
+    const d = Math.round(h / 24);
+    return d === 1 ? "ayer" : "hace " + d + " días";
+  }
+  function para(texto) {
+    return String(texto || "")
+      .replace("Para regalárselo a mis padres o abuelos", "Regalo")
+      .replace("Para mis hijos, para que sepan de dónde vienen", "Mis hijos");
+  }
+
+  function pintar(d) {
+    document.getElementById("c-total").textContent = d.total;
+    document.getElementById("c-meta").textContent = "respuestas (meta " + d.meta + ")";
+    document.getElementById("c-barra").style.width = Math.min(100, d.total / d.meta * 100) + "%";
+    document.getElementById("c-nosabe").textContent = d.noSabe === null ? "–" : d.noSabe + " %";
+    document.getElementById("c-media").textContent = d.media === null ? "–" : String(d.media).replace(".", ",");
+    document.getElementById("c-regalo").textContent = d.regalo === null ? "–" : d.regalo + " %";
+    document.getElementById("conclusion").textContent = d.conclusion;
+
+    // Últimas 5
+    const ult = document.getElementById("ultimas");
+    ult.replaceChildren();
+    if (!d.respuestas.length) ult.appendChild(el("p", "vacio", "Todavía no hay respuestas."));
+    else {
+      const t = el("table");
+      d.respuestas.slice(0, 5).forEach(function (r) {
+        const tr = el("tr");
+        tr.append(el("td", "", hace(r.hace)), el("td", "", r.edad || "–"), el("td", "estrellas", estrellas(r.interes)));
+        t.appendChild(tr);
+      });
+      ult.appendChild(t);
+    }
+
+    // Gráficos
+    const g = document.getElementById("graficos");
+    g.replaceChildren();
+    d.preguntas.forEach(function (p) {
+      const tarjeta = el("div", "tarjeta");
+      tarjeta.appendChild(el("h2", "", p.titulo));
+      const max = Math.max(1, ...p.opciones.map(function (o) { return o.n; }));
+      p.opciones.forEach(function (o) {
+        const fila = el("div", "barra");
+        const pista = el("div", "pista");
+        const relleno = el("div", "relleno");
+        relleno.style.width = (o.n / max * 100) + "%";
+        pista.appendChild(relleno);
+        fila.append(el("span", "", o.op), el("span", "n", o.n), pista);
+        tarjeta.appendChild(fila);
+      });
+      g.appendChild(tarjeta);
+    });
+
+    // Tabla
+    const tabla = document.getElementById("tabla");
+    tabla.replaceChildren();
+    if (!d.respuestas.length) tabla.appendChild(el("p", "vacio", "Todavía no hay respuestas."));
+    else {
+      const t = el("table");
+      const cab = el("tr");
+      ["Cuándo", "Fotos", "¿Saben quién sale?", "¿Guardadas?", "Interés", "Para quién", "Edad"].forEach(function (c) { cab.appendChild(el("th", "", c)); });
+      t.appendChild(cab);
+      d.respuestas.forEach(function (r) {
+        const tr = el("tr");
+        tr.append(el("td", "", r.cuando), el("td", "", r.fotos), el("td", "", r.sabe), el("td", "", r.guardadas),
+          el("td", "estrellas", estrellas(r.interes)), el("td", "", para(r.para)), el("td", "", r.edad || "–"));
+        t.appendChild(tr);
+      });
+      tabla.appendChild(t);
+    }
+
+    // Enlaces
+    const msg = "Hola 👋 Estoy haciendo un estudio para un proyecto sobre las fotos antiguas de las familias. ¿Me ayudas contestando? Son 2 minutos y es anónimo 🙏\n" +
+      d.enlaces.enviar + "\nSi puedes, pásaselo también a tus padres o a tu familia. ¡Gracias!";
+    document.getElementById("mensaje").textContent = msg;
+    document.getElementById("l-enviar").href = d.enlaces.enviar;
+    document.getElementById("l-editar").href = d.enlaces.editar;
+    document.getElementById("l-hoja").href = d.enlaces.hoja;
+    document.getElementById("l-whatsapp").href = "https://wa.me/?text=" + encodeURIComponent(msg);
+
+    const estado = document.getElementById("estado");
+    estado.className = "directo";
+    estado.textContent = "en directo · " + new Date(d.ahora).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function fallo(e) {
+    const estado = document.getElementById("estado");
+    estado.className = "directo mal";
+    estado.textContent = "no se pudo leer la hoja (" + e + ")";
+  }
+
+  // Dirección de Google que da los datos (solo con la contraseña correcta).
+  const API = "https://script.google.com/macros/s/AKfycbzQkjx0idJHV39h9Iru906yVL0c9nSVY6qTszuWtUAm2Fqqjr2KsMYHUArUcK5KmoWu/exec";
+  const GUARDADA = "panel_recuerdos_clave";
+  let clave = "";
+  let temporizador = null;
+  try { clave = localStorage.getItem(GUARDADA) || ""; } catch (e) {}
+
+  const MENSAJES = {
+    clave: "Contraseña incorrecta.",
+    bloqueado: "Demasiados intentos fallidos. Espera 15 minutos y vuelve a probar.",
+    "sin-clave": "Todavía no has puesto la contraseña en Google (Propiedades del script → CLAVE).",
+    peticion: "Algo ha fallado al pedir los datos."
+  };
+
+  function pedir() {
+    return fetch(API, { method: "POST", body: JSON.stringify({ clave: clave }) })
+      .then(function (r) { return r.json(); });
+  }
+
+  function cargar() {
+    pedir().then(function (r) {
+      if (r.ok) { pintar(r.datos); return; }
+      if (r.error === "clave" || r.error === "sin-clave" || r.error === "bloqueado") salir(MENSAJES[r.error]);
+      else fallo(MENSAJES[r.error] || r.error);
+    }).catch(function () { fallo("sin conexión, reintentando"); });
+  }
+
+  function empezar() {
+    document.getElementById("entrada").hidden = true;
+    cargar();
+    clearInterval(temporizador);
+    temporizador = setInterval(cargar, 30000);
+  }
+
+  function salir(mensaje) {
+    clearInterval(temporizador);
+    clave = "";
+    try { localStorage.removeItem(GUARDADA); } catch (e) {}
+    document.getElementById("entrada").hidden = false;
+    document.getElementById("error-entrada").textContent = mensaje || "";
+    document.getElementById("clave").value = "";
+    document.getElementById("clave").focus();
+  }
+
+  document.getElementById("form-entrada").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    const boton = document.getElementById("boton-entrar");
+    boton.disabled = true;
+    boton.textContent = "Comprobando…";
+    document.getElementById("error-entrada").textContent = "";
+    clave = document.getElementById("clave").value;
+    pedir().then(function (r) {
+      if (r.ok) {
+        if (document.getElementById("recordar").checked) { try { localStorage.setItem(GUARDADA, clave); } catch (e) {} }
+        pintar(r.datos);
+        empezar();
+      } else {
+        clave = "";
+        document.getElementById("error-entrada").textContent = MENSAJES[r.error] || "Algo ha fallado.";
+      }
+    }).catch(function () {
+      clave = "";
+      document.getElementById("error-entrada").textContent = "No hay conexión con Google. Prueba otra vez.";
+    }).finally(function () {
+      boton.disabled = false;
+      boton.textContent = "Entrar";
+    });
+  });
+
+  document.getElementById("salir").addEventListener("click", function () { salir(""); });
+
+  if (clave) empezar(); else document.getElementById("clave").focus();
+</script>
+</body>
+</html>
