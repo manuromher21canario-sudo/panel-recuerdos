@@ -57,6 +57,26 @@
   .conclusion { border-left:4px solid var(--acento); background:var(--acento-suave); padding:10px 14px; border-radius:0 10px 10px 0; font-size:.92rem; margin:0; }
   .vacio { color:var(--suave); font-style:italic; }
   .enlaces a { display:inline-block; margin:4px 6px 4px 0; padding:8px 14px; border-radius:999px; background:var(--acento-suave); color:var(--acento); text-decoration:none; font-weight:600; font-size:.88rem; }
+  .periodos { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px; }
+  .periodo { background:var(--tarjeta); border:1px solid var(--borde); border-radius:12px; padding:14px 16px; }
+  .periodo h3 { margin:0 0 8px; font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:var(--suave); }
+  .periodo .linea { display:flex; justify-content:space-between; font-size:.92rem; font-variant-numeric:tabular-nums; padding:2px 0; }
+  .periodo .benef { font-size:1.5rem; font-weight:800; margin-top:6px; padding-top:6px; border-top:1px solid var(--borde); font-variant-numeric:tabular-nums; }
+  .positivo { color:var(--ok); } .negativo { color:var(--error); }
+  .form-dinero { display:grid; gap:6px; }
+  .form-dinero label { font-size:.85rem; color:var(--suave); margin-top:4px; }
+  .form-dinero input, .form-dinero select { font:inherit; padding:9px 10px; border:1px solid var(--borde); border-radius:10px; background:var(--tarjeta); color:var(--tinta); }
+  .form-dinero input:focus-visible, .form-dinero select:focus-visible { outline:2px solid var(--acento); border-color:transparent; }
+  .tipo { display:flex; gap:6px; }
+  .tipo button { flex:1; font:inherit; font-weight:700; padding:8px; border-radius:10px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--tinta); cursor:pointer; }
+  .tipo button.elegido { background:var(--lateral); color:#fff; border-color:var(--lateral); }
+  .form-dinero .guardar { margin-top:10px; font:inherit; font-weight:800; padding:11px; border:0; border-radius:10px; background:var(--acento); color:#fff; cursor:pointer; }
+  .form-dinero .guardar:disabled { opacity:.6; }
+  .mov { display:grid; grid-template-columns:4.6rem minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--borde); font-size:.9rem; }
+  .mov:first-child { border-top:0; }
+  .mov.anulado { opacity:.45; text-decoration:line-through; }
+  .mov .importe { font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .mov small { display:block; color:var(--suave); }
   .mini { font:inherit; font-size:.8rem; padding:4px 10px; border-radius:999px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--tinta); cursor:pointer; white-space:nowrap; }
   .mini:hover { border-color:var(--acento); color:var(--acento); }
   .mini:disabled { opacity:.5; cursor:default; }
@@ -106,9 +126,9 @@
     <button class="activo" data-v="inicio">🏠 Inicio</button>
     <button data-v="encuesta">📊 Encuesta</button>
     <button data-v="respuestas">📝 Respuestas</button>
+    <button data-v="dinero">💶 Dinero</button>
     <div class="grupo">Cuando haya app</div>
     <button class="pronto" tabindex="-1">👨‍👩‍👧 Familias <span class="etq">pronto</span></button>
-    <button class="pronto" tabindex="-1">💶 Cobros <span class="etq">pronto</span></button>
     <button class="pronto" tabindex="-1">🎙️ Álbumes <span class="etq">pronto</span></button>
     <div class="grupo">Otros</div>
     <button data-v="enlaces">⚙️ Enlaces</button>
@@ -124,6 +144,7 @@
         <div class="cifra"><b id="c-nosabe">–</b><span>no sabe quién sale en algunas o muchas fotos</span></div>
         <div class="cifra"><b id="c-media">–</b><span>de 5: cuánto les gustaría tenerlo</span></div>
         <div class="cifra"><b id="c-regalo">–</b><span>lo regalaría a sus padres o abuelos</span></div>
+        <div class="cifra" id="c-benef-caja"><b id="c-benef">–</b><span>beneficio este mes</span></div>
       </div>
       <div class="dos">
         <div class="tarjeta"><h2>💡 Lo que dicen los datos</h2><p class="conclusion" id="conclusion">Cargando…</p></div>
@@ -148,6 +169,38 @@
       </div>
     </section>
 
+    <section class="vista" id="v-dinero">
+      <h1>💶 Dinero</h1>
+      <p class="sub">Lo que entra, lo que sale y lo que queda. Se apunta aquí o en la hoja de Google. Impuestos aparte.</p>
+      <div class="periodos" id="periodos"></div>
+      <div class="dos">
+        <div class="tarjeta">
+          <h2>➕ Apuntar</h2>
+          <form id="form-dinero" class="form-dinero">
+            <div class="tipo" role="group" aria-label="Tipo">
+              <button type="button" class="elegido" data-tipo="ingreso">Ingreso</button>
+              <button type="button" data-tipo="gasto">Gasto</button>
+            </div>
+            <label for="d-concepto">Concepto</label>
+            <input id="d-concepto" maxlength="80" placeholder="Por ejemplo: Baúl de la familia García" required>
+            <label for="d-categoria">Categoría</label>
+            <select id="d-categoria"></select>
+            <label for="d-importe">Importe (€)</label>
+            <input id="d-importe" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="30" required>
+            <button type="submit" class="guardar" id="d-guardar">Apuntar</button>
+          </form>
+        </div>
+        <div class="tarjeta">
+          <h2>📂 Este mes, por categoría</h2>
+          <div id="categorias"></div>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <h2>🧾 Últimos movimientos</h2>
+        <div id="movimientos"></div>
+      </div>
+    </section>
+
     <section class="vista" id="v-enlaces">
       <h1>⚙️ Enlaces</h1>
       <p class="sub">Todo lo de la encuesta, a mano.</p>
@@ -156,6 +209,7 @@
         <a id="l-whatsapp" href="#">💬 Enviar por WhatsApp</a>
         <a id="l-editar" href="#">✏️ Cambiar el formulario</a>
         <a id="l-hoja" href="#">📄 Hoja de Google con las respuestas</a>
+        <a id="l-dinero" href="#">💶 Hoja de Google del dinero</a>
       </div>
       <div class="tarjeta">
         <h2>Mensaje para copiar</h2>
@@ -289,6 +343,8 @@
     document.getElementById("l-enviar").href = d.enlaces.enviar;
     document.getElementById("l-editar").href = d.enlaces.editar;
     document.getElementById("l-hoja").href = d.enlaces.hoja;
+    if (d.enlaces.dinero) document.getElementById("l-dinero").href = d.enlaces.dinero;
+    if (d.dinero) pintarDinero(d.dinero);
     document.getElementById("l-whatsapp").href = "https://wa.me/?text=" + encodeURIComponent(msg);
 
     const estado = document.getElementById("estado");
@@ -313,8 +369,83 @@
     clave: "Contraseña incorrecta.",
     bloqueado: "Demasiados intentos fallidos. Espera 15 minutos y vuelve a probar.",
     "sin-clave": "Todavía no has puesto la contraseña en Google (Propiedades del script → CLAVE).",
+    movimiento: "Revisa el concepto, la categoría y el importe.",
     peticion: "Algo ha fallado al pedir los datos."
   };
+
+  // ---------- Dinero ----------
+  const euros = n => (n < 0 ? "−" : "") + Math.abs(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  let tipoDinero = "ingreso", categoriasDinero = null;
+  function pintarDinero(din) {
+    categoriasDinero = din.categorias;
+    const mesB = din.totales.mes.beneficio;
+    document.getElementById("c-benef").textContent = euros(mesB);
+    document.getElementById("c-benef-caja").className = "cifra " + (mesB >= 0 ? "" : "");
+    document.getElementById("c-benef").className = mesB > 0 ? "positivo" : mesB < 0 ? "negativo" : "";
+    const per = document.getElementById("periodos"); per.replaceChildren();
+    [["hoy", "Hoy"], ["mes", "Este mes"], ["anio", "Este año"]].forEach(([k, t]) => {
+      const x = din.totales[k], c = el("div", "periodo");
+      c.appendChild(el("h3", "", t));
+      const l1 = el("div", "linea"); l1.append(el("span", "", "Ingresos"), el("span", "positivo", euros(x.ingresos)));
+      const l2 = el("div", "linea"); l2.append(el("span", "", "Gastos"), el("span", "negativo", euros(-x.gastos)));
+      const b = el("div", "benef " + (x.beneficio > 0 ? "positivo" : x.beneficio < 0 ? "negativo" : ""), euros(x.beneficio));
+      c.append(l1, l2, el("div", "linea", ""), b);
+      c.lastChild.title = "Beneficio";
+      per.appendChild(c);
+    });
+    const cat = document.getElementById("categorias"); cat.replaceChildren();
+    const entradas = Object.entries(din.porCategoria).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    if (!entradas.length) cat.appendChild(el("p", "vacio", "Todavía no hay movimientos este mes."));
+    entradas.forEach(([c, n]) => { const f = el("div", "linea"); f.className = "periodo linea"; f.style.border = "0"; f.style.padding = "4px 0";
+      f.append(el("span", "", c), el("span", n >= 0 ? "positivo" : "negativo", euros(n))); cat.appendChild(f); });
+    const lista = document.getElementById("movimientos"); lista.replaceChildren();
+    if (!din.movimientos.length) lista.appendChild(el("p", "vacio", "Aún no has apuntado nada. Empieza con el formulario de «Apuntar»."));
+    din.movimientos.forEach(m => {
+      const f = el("div", "mov" + (m.anulado ? " anulado" : ""));
+      const desc = el("span", "", m.concepto); desc.appendChild(el("small", "", m.categoria));
+      const b = el("button", "mini", m.anulado ? "Recuperar" : "Anular"); b.type = "button";
+      b.addEventListener("click", () => cambiarMov(m.anulado ? "recuperar-mov" : "anular-mov", m.fila, b));
+      f.append(el("span", "", m.cuando), desc, el("span", "importe " + (m.tipo === "gasto" ? "negativo" : "positivo"), euros(m.tipo === "gasto" ? -m.importe : m.importe)), b);
+      lista.appendChild(f);
+    });
+    rellenarCategorias();
+  }
+  function rellenarCategorias() {
+    const sel = document.getElementById("d-categoria"), antes = sel.value;
+    if (!categoriasDinero) return;
+    sel.replaceChildren(...categoriasDinero[tipoDinero].map(c => { const o = el("option", "", c); o.value = c; return o; }));
+    if (categoriasDinero[tipoDinero].includes(antes)) sel.value = antes;
+  }
+  document.querySelectorAll(".tipo button").forEach(b => b.addEventListener("click", () => {
+    tipoDinero = b.dataset.tipo;
+    document.querySelectorAll(".tipo button").forEach(x => x.classList.toggle("elegido", x === b));
+    rellenarCategorias();
+  }));
+  function cambiarMov(accion, fila, boton) {
+    if (boton) boton.disabled = true;
+    pedir({ accion: accion, fila: fila }).then(r => {
+      if (!r.ok) { fallo(MENSAJES[r.error] || r.error); if (boton) boton.disabled = false; return; }
+      pintar(r.datos);
+      const contrario = accion === "anular-mov" ? "recuperar-mov" : "anular-mov";
+      avisar(accion === "anular-mov" ? "Movimiento anulado (no cuenta)" : "Movimiento recuperado", () => cambiarMov(contrario, fila));
+    }).catch(() => { fallo("sin conexión"); if (boton) boton.disabled = false; });
+  }
+  document.getElementById("form-dinero").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const boton = document.getElementById("d-guardar");
+    boton.disabled = true; boton.textContent = "Apuntando…";
+    pedir({ accion: "apuntar", tipo: tipoDinero, concepto: document.getElementById("d-concepto").value,
+            categoria: document.getElementById("d-categoria").value, importe: document.getElementById("d-importe").value })
+      .then(r => {
+        if (!r.ok) { avisar(r.error === "movimiento" ? "Revisa el concepto, la categoría y el importe." : (MENSAJES[r.error] || r.error), () => {}); return; }
+        pintar(r.datos);
+        document.getElementById("d-concepto").value = ""; document.getElementById("d-importe").value = "";
+        const nuevo = r.datos.dinero.movimientos[0];
+        avisar("Apuntado: " + nuevo.concepto + " (" + euros(nuevo.importe) + ")", () => cambiarMov("anular-mov", nuevo.fila));
+      })
+      .catch(() => fallo("sin conexión"))
+      .finally(() => { boton.disabled = false; boton.textContent = "Apuntar"; });
+  });
 
   function pedir(extra) {
     const cuerpo = Object.assign({ clave: clave }, extra || {});
